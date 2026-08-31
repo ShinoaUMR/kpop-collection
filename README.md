@@ -2,7 +2,7 @@
 
 A beautiful, full-featured web app to manage your K-Pop photocard collection. Built with React, TypeScript, and Supabase.
 
-![App Screenshot](https://via.placeholder.com/800x400/1a1a2e/ff6b6b?text=K-Pop+Collection+App)
+![App Screenshot](./screenshot.png)
 
 ## ✨ Features
 
