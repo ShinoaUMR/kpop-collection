@@ -70,7 +70,7 @@ export default function App() {
       
       const arrayBuffer = await file.arrayBuffer();
       
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from(STORAGE_BUCKET)
         .upload(fileName, arrayBuffer, {
           contentType: file.type,
