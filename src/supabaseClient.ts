@@ -8,3 +8,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Add this line - the name of your storage bucket
+export const STORAGE_BUCKET = 'card-images';

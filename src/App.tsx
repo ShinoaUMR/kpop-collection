@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from './supabaseClient';
+import React, { useState, useEffect, useRef } from 'react';
+import { supabase, STORAGE_BUCKET } from './supabaseClient';
 import './styles.css';
 
 interface Photocard {
@@ -20,17 +20,105 @@ export default function App() {
   const [filter, setFilter] = useState<string>('All');
   const [showAddForm, setShowAddForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{
+    file: File;
+    preview: string;
+  } | null>(null);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [newCard, setNewCard] = useState({
     name: '',
     group_name: '',
     album: '',
     status: 'Owned' as Photocard['status'],
-    image_url: '',
     price: '',
+    image_url: '', // NEW: URL field
   });
 
-  // Load cards from Supabase
+  // ============================================================
+  // IMAGE PICKER FUNCTIONS (Web Version)
+  // ============================================================
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image must be smaller than 5MB');
+      return;
+    }
+
+    const preview = URL.createObjectURL(file);
+    setSelectedImage({ file, preview });
+    // Clear URL field when uploading a file
+    setNewCard({ ...newCard, image_url: '' });
+  };
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      setUploading(true);
+      
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const arrayBuffer = await file.arrayBuffer();
+      
+      const { data, error } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .upload(fileName, arrayBuffer, {
+          contentType: file.type,
+          cacheControl: '3600',
+          upsert: false,
+        });
+      
+      if (error) {
+        console.error('Upload error:', error);
+        alert(`Upload failed: ${error.message}`);
+        return null;
+      }
+      
+      const { data: publicUrlData } = supabase.storage
+        .from(STORAGE_BUCKET)
+        .getPublicUrl(fileName);
+      
+      return publicUrlData.publicUrl;
+      
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert('Failed to upload image. Please try again.');
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const triggerFilePicker = () => {
+    fileInputRef.current?.click();
+  };
+
+  const removeImage = () => {
+    if (selectedImage) {
+      URL.revokeObjectURL(selectedImage.preview);
+      setSelectedImage(null);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    // Clear URL field too
+    setNewCard({ ...newCard, image_url: '' });
+  };
+
+  // ============================================================
+  // DATABASE FUNCTIONS
+  // ============================================================
+
   const loadCards = async () => {
     setLoading(true);
     setError(null);
@@ -52,17 +140,31 @@ export default function App() {
     }
   };
 
-  // Add card to Supabase
   const addCard = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    
+    let imageUrl: string | null = null;
+    
+    // Priority 1: If a file is selected, upload it
+    if (selectedImage) {
+      imageUrl = await uploadImage(selectedImage.file);
+      if (!imageUrl) {
+        setError('Failed to upload image. Please try again.');
+        return;
+      }
+    } 
+    // Priority 2: If URL is provided, use it
+    else if (newCard.image_url.trim()) {
+      imageUrl = newCard.image_url.trim();
+    }
     
     const cardData = {
       name: newCard.name,
       group_name: newCard.group_name,
       album: newCard.album || null,
       status: newCard.status,
-      image_url: newCard.image_url || null,
+      image_url: imageUrl,
       price: newCard.price ? parseFloat(newCard.price) : null,
     };
 
@@ -79,21 +181,23 @@ export default function App() {
       
       if (data) setCards([data[0], ...cards]);
       
+      // Reset form
       setNewCard({
         name: '',
         group_name: '',
         album: '',
         status: 'Owned',
-        image_url: '',
         price: '',
+        image_url: '',
       });
+      removeImage();
       setShowAddForm(false);
+      
     } catch (err) {
       setError('Failed to add card.');
     }
   };
 
-  // Delete card
   const deleteCard = async (id: string) => {
     if (!confirm('Delete this card?')) return;
     setError(null);
@@ -114,12 +218,10 @@ export default function App() {
     }
   };
 
-  // Load cards on app start
   useEffect(() => {
     loadCards();
   }, []);
 
-  // Filter and search
   const filteredCards = cards.filter((card) => {
     const matchesSearch = 
       card.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -139,6 +241,10 @@ export default function App() {
       .filter(c => c.status === 'Owned')
       .reduce((sum, c) => sum + (c.price || 0), 0),
   };
+
+  // ============================================================
+  // RENDER
+  // ============================================================
 
   return (
     <div className="app">
@@ -235,6 +341,7 @@ export default function App() {
                   placeholder="e.g., Jisoo"
                 />
               </div>
+              
               <div className="form-group">
                 <label>Group *</label>
                 <input
@@ -245,6 +352,7 @@ export default function App() {
                   placeholder="e.g., BLACKPINK"
                 />
               </div>
+              
               <div className="form-group">
                 <label>Album</label>
                 <input
@@ -254,6 +362,7 @@ export default function App() {
                   placeholder="e.g., BORN PINK"
                 />
               </div>
+              
               <div className="form-group">
                 <label>Status *</label>
                 <select
@@ -267,16 +376,68 @@ export default function App() {
                   <option value="Sold">💸 Sold</option>
                 </select>
               </div>
+              
+              {/* NEW: URL Input Field */}
               <div className="form-group">
-                <label>Image URL</label>
+                <label>Image URL (optional)</label>
                 <input
                   type="url"
                   value={newCard.image_url}
-                  onChange={(e) => setNewCard({...newCard, image_url: e.target.value})}
-                  placeholder="https://picsum.photos/seed/example/300/400"
+                  onChange={(e) => {
+                    setNewCard({...newCard, image_url: e.target.value});
+                    // If user types a URL, clear the uploaded file
+                    if (e.target.value && selectedImage) {
+                      removeImage();
+                    }
+                  }}
+                  placeholder="https://example.com/card-image.jpg"
+                  disabled={!!selectedImage} // Disable if a file is uploaded
                 />
-                <small>💡 Use picsum.photos for demo images</small>
+                <small>Paste a URL or use the Choose Photo button below</small>
               </div>
+              
+              {/* Image Picker Section */}
+              <div className="form-group">
+                <label>Or Upload from Device</label>
+                <div className="image-picker-area">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                  />
+                  
+                  {selectedImage ? (
+                    <div className="image-preview">
+                      <img 
+                        src={selectedImage.preview} 
+                        alt="Selected card" 
+                        className="preview-thumbnail"
+                      />
+                      <button 
+                        type="button" 
+                        className="remove-image-btn"
+                        onClick={removeImage}
+                      >
+                        ✕ Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="pick-image-btn"
+                      onClick={triggerFilePicker}
+                      disabled={uploading}
+                    >
+                      {uploading ? '⏳ Uploading...' : '📷 Choose Photo'}
+                    </button>
+                  )}
+                  {uploading && <div className="upload-progress">Uploading image...</div>}
+                  <small>Select an image from your device (Max 5MB)</small>
+                </div>
+              </div>
+              
               <div className="form-group">
                 <label>Price (USD)</label>
                 <input
@@ -287,12 +448,16 @@ export default function App() {
                   placeholder="15.99"
                 />
               </div>
+              
               <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setShowAddForm(false)}>
+                <button type="button" className="btn-secondary" onClick={() => {
+                  setShowAddForm(false);
+                  removeImage();
+                }}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary">
-                  ➕ Add Card
+                <button type="submit" className="btn-primary" disabled={uploading}>
+                  {uploading ? 'Uploading...' : '➕ Add Card'}
                 </button>
               </div>
             </form>
