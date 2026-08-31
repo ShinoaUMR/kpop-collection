@@ -17,7 +17,7 @@ A beautiful, full-featured web app to manage your K-Pop photocard collection. Bu
 
 ## 🚀 Live Demo
 
-[View Live Demo](https://your-app-url.vercel.app) *(Add your deployed URL here)*
+[View Live Demo](https://cuddly-computing-machine-69jgjg74xqj3w96-4173.app.github.dev/) *(Add your deployed URL here)*
 
 ## 🛠️ Tech Stack
 
