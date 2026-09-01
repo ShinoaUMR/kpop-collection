@@ -1,8 +1,3 @@
-# 📝 Updated README.md with Authentication
-
-Here's your complete updated README. Replace your current `README.md` with this:
-
-```markdown
 # 📸 K-Pop Photocard Collection
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
