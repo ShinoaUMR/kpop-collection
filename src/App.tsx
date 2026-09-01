@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase, STORAGE_BUCKET } from './supabaseClient';
+import Auth from './Auth';
 import './styles.css';
 
 interface Photocard {
@@ -11,11 +12,13 @@ interface Photocard {
   image_url: string | null;
   price: number | null;
   created_at?: string;
+  user_id?: string;
 }
 
 export default function App() {
-  const [cards, setCards] = useState<Photocard[]>([]);
+  const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [cards, setCards] = useState<Photocard[]>([]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<string>('All');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -34,11 +37,78 @@ export default function App() {
     album: '',
     status: 'Owned' as Photocard['status'],
     price: '',
-    image_url: '', // NEW: URL field
+    image_url: '',
   });
 
   // ============================================================
-  // IMAGE PICKER FUNCTIONS (Web Version)
+  // AUTH FUNCTIONS
+  // ============================================================
+
+  const checkSession = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('Session:', session); // Debug: Check if session exists
+    setSession(session);
+    setLoading(false);
+  };
+
+  const handleAuthSuccess = () => {
+    checkSession();
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+    setCards([]);
+    window.location.reload(); // Refresh to show login screen
+  };
+
+  useEffect(() => {
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        if (session) {
+          loadCards();
+        } else {
+          setCards([]);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // ============================================================
+  // LOAD CARDS (ONLY USER'S CARDS)
+  // ============================================================
+
+  const loadCards = async () => {
+    if (!session?.user) return;
+    
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error } = await supabase
+        .from('cards')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        setError(`Database error: ${error.message}`);
+        return;
+      }
+      setCards(data || []);
+    } catch (err) {
+      setError('Failed to connect to database.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ============================================================
+  // IMAGE PICKER FUNCTIONS
   // ============================================================
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,7 +127,6 @@ export default function App() {
 
     const preview = URL.createObjectURL(file);
     setSelectedImage({ file, preview });
-    // Clear URL field when uploading a file
     setNewCard({ ...newCard, image_url: '' });
   };
 
@@ -111,51 +180,31 @@ export default function App() {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    // Clear URL field too
     setNewCard({ ...newCard, image_url: '' });
   };
 
   // ============================================================
-  // DATABASE FUNCTIONS
+  // ADD CARD
   // ============================================================
-
-  const loadCards = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data, error } = await supabase
-        .from('cards')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        setError(`Database error: ${error.message}`);
-        return;
-      }
-      setCards(data || []);
-    } catch (err) {
-      setError('Failed to connect to database.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const addCard = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     
+    if (!session?.user) {
+      setError('You must be logged in to add cards');
+      return;
+    }
+    
     let imageUrl: string | null = null;
     
-    // Priority 1: If a file is selected, upload it
     if (selectedImage) {
       imageUrl = await uploadImage(selectedImage.file);
       if (!imageUrl) {
         setError('Failed to upload image. Please try again.');
         return;
       }
-    } 
-    // Priority 2: If URL is provided, use it
-    else if (newCard.image_url.trim()) {
+    } else if (newCard.image_url.trim()) {
       imageUrl = newCard.image_url.trim();
     }
     
@@ -166,6 +215,7 @@ export default function App() {
       status: newCard.status,
       image_url: imageUrl,
       price: newCard.price ? parseFloat(newCard.price) : null,
+      user_id: session.user.id,
     };
 
     try {
@@ -181,7 +231,6 @@ export default function App() {
       
       if (data) setCards([data[0], ...cards]);
       
-      // Reset form
       setNewCard({
         name: '',
         group_name: '',
@@ -198,6 +247,10 @@ export default function App() {
     }
   };
 
+  // ============================================================
+  // DELETE CARD
+  // ============================================================
+
   const deleteCard = async (id: string) => {
     if (!confirm('Delete this card?')) return;
     setError(null);
@@ -206,7 +259,8 @@ export default function App() {
       const { error } = await supabase
         .from('cards')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', session?.user.id);
       
       if (error) {
         setError(`Failed to delete card: ${error.message}`);
@@ -218,9 +272,9 @@ export default function App() {
     }
   };
 
-  useEffect(() => {
-    loadCards();
-  }, []);
+  // ============================================================
+  // FILTER AND SEARCH
+  // ============================================================
 
   const filteredCards = cards.filter((card) => {
     const matchesSearch = 
@@ -246,15 +300,34 @@ export default function App() {
   // RENDER
   // ============================================================
 
+  // If still loading, show loading state
+  if (loading) {
+    return <div className="loading">⏳ Loading...</div>;
+  }
+
+  // If not authenticated, show login screen
+  if (!session) {
+    return <Auth onAuthSuccess={handleAuthSuccess} />;
+  }
+
+  // If authenticated, show the collection
   return (
     <div className="app">
       <header className="header">
-        <h1>📸 My K-Pop Collection</h1>
+        <div className="header-left">
+          <h1>📸 My K-Pop Collection</h1>
+        </div>
+        <div className="header-right">
+          <span className="user-email">👤 {session.user.email}</span>
+          <button className="logout-btn" onClick={handleLogout}>
+            🚪 Logout
+          </button>
+        </div>
         <div className="stats">
-          <span>Total: {stats.total}</span>
-          <span>Owned: {stats.owned}</span>
-          <span>Wishlist: {stats.wishlist}</span>
-          <span>Value: ${stats.value.toFixed(2)}</span>
+          <span>📊 Total: {stats.total}</span>
+          <span>✅ Owned: {stats.owned}</span>
+          <span>⭐ Wishlist: {stats.wishlist}</span>
+          <span>💰 Value: ${stats.value.toFixed(2)}</span>
         </div>
       </header>
 
@@ -286,9 +359,7 @@ export default function App() {
         </div>
       )}
 
-      {loading ? (
-        <div className="loading">⏳ Loading...</div>
-      ) : filteredCards.length === 0 ? (
+      {filteredCards.length === 0 ? (
         <div className="empty-state">
           <p>📭 No cards found</p>
           <p className="empty-sub">Add your first card using the + button!</p>
@@ -377,7 +448,6 @@ export default function App() {
                 </select>
               </div>
               
-              {/* NEW: URL Input Field */}
               <div className="form-group">
                 <label>Image URL (optional)</label>
                 <input
@@ -385,18 +455,16 @@ export default function App() {
                   value={newCard.image_url}
                   onChange={(e) => {
                     setNewCard({...newCard, image_url: e.target.value});
-                    // If user types a URL, clear the uploaded file
                     if (e.target.value && selectedImage) {
                       removeImage();
                     }
                   }}
                   placeholder="https://example.com/card-image.jpg"
-                  disabled={!!selectedImage} // Disable if a file is uploaded
+                  disabled={!!selectedImage}
                 />
                 <small>Paste a URL or use the Choose Photo button below</small>
               </div>
               
-              {/* Image Picker Section */}
               <div className="form-group">
                 <label>Or Upload from Device</label>
                 <div className="image-picker-area">
