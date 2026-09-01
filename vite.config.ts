@@ -23,21 +23,25 @@ export default defineConfig({
             src: 'app-icon.svg',
             sizes: '192x192',
             type: 'image/svg+xml',
-            purpose: 'any'
           },
           {
             src: 'app-icon.svg',
             sizes: '512x512',
             type: 'image/svg+xml',
-            purpose: 'any'
           },
           {
             src: 'app-icon.svg',
             sizes: '512x512',
             type: 'image/svg+xml',
-            purpose: 'maskable'
-          }
-        ]
+            purpose: 'any',
+          },
+          {
+            src: 'app-icon.svg',
+            sizes: '512x512',
+            type: 'image/svg+xml',
+            purpose: 'maskable',
+          },
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],

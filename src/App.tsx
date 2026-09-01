@@ -46,7 +46,7 @@ export default function App() {
 
   const checkSession = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    console.log('Session:', session); // Debug: Check if session exists
+    console.log('🔍 Session:', session);
     setSession(session);
     setLoading(false);
   };
@@ -59,7 +59,7 @@ export default function App() {
     await supabase.auth.signOut();
     setSession(null);
     setCards([]);
-    window.location.reload(); // Refresh to show login screen
+    window.location.reload();
   };
 
   useEffect(() => {
@@ -80,7 +80,7 @@ export default function App() {
   }, []);
 
   // ============================================================
-  // LOAD CARDS (ONLY USER'S CARDS)
+  // LOAD CARDS
   // ============================================================
 
   const loadCards = async () => {
@@ -108,7 +108,7 @@ export default function App() {
   };
 
   // ============================================================
-  // IMAGE PICKER FUNCTIONS
+  // IMAGE FUNCTIONS
   // ============================================================
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -300,17 +300,14 @@ export default function App() {
   // RENDER
   // ============================================================
 
-  // If still loading, show loading state
   if (loading) {
     return <div className="loading">⏳ Loading...</div>;
   }
 
-  // If not authenticated, show login screen
   if (!session) {
     return <Auth onAuthSuccess={handleAuthSuccess} />;
   }
 
-  // If authenticated, show the collection
   return (
     <div className="app">
       <header className="header">
