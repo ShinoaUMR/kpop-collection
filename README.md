@@ -23,7 +23,7 @@
 
 ## 🚀 Live Demo
 
-[View Live Demo](https://[YOUR_APP_URL]) <!-- Replace with your deployed URL -->
+[View Live Demo](https://cuddly-computing-machine-69jgjg74xqj3w96-5173.app.github.dev/) <!-- Replace with your deployed URL -->
 
 ## 🛠️ Tech Stack
 
@@ -245,9 +245,9 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ## 📞 Contact
 
-[YOUR_NAME] - [@YOUR_TWITTER] - [YOUR_EMAIL]
 
-Project Link: [https://github.com/[YOUR_USERNAME]/kpop-collection](https://github.com/[YOUR_USERNAME]/kpop-collection)
+
+Project Link: [https://github.com/[ShinoaUMR]/kpop-collection](https://github.com/[YOUR_USERNAME]/kpop-collection)
 
 ---
 
@@ -255,9 +255,9 @@ Project Link: [https://github.com/[YOUR_USERNAME]/kpop-collection](https://githu
 
 If you found this project helpful, please give it a star on GitHub!
 
-[![GitHub stars](https://img.shields.io/github/stars/[YOUR_USERNAME]/kpop-collection)](https://github.com/[YOUR_USERNAME]/kpop-collection/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/[YOUR_USERNAME]/kpop-collection)](https://github.com/[YOUR_USERNAME]/kpop-collection/network)
-[![GitHub issues](https://img.shields.io/github/issues/[YOUR_USERNAME]/kpop-collection)](https://github.com/[YOUR_USERNAME]/kpop-collection/issues)
+[![GitHub stars](https://img.shields.io/github/stars/[ShinoaUMR]/kpop-collection)](https://github.com/[YOUR_USERNAME]/kpop-collection/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/[ShinoaUMR]/kpop-collection)](https://github.com/[YOUR_USERNAME]/kpop-collection/network)
+[![GitHub issues](https://img.shields.io/github/issues/[ShinoaUMR]/kpop-collection)](https://github.com/[YOUR_USERNAME]/kpop-collection/issues)
 
 ---
 
