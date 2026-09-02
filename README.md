@@ -23,7 +23,7 @@
 
 ## 🚀 Live Demo
 
-[View Live Demo](https://cuddly-computing-machine-69jgjg74xqj3w96-5173.app.github.dev/) <!-- Replace with your deployed URL -->
+[View Live Demo](https://kpop-collection-ashy.vercel.app/) <!-- Replace with your deployed URL -->
 
 ## 🛠️ Tech Stack
 
