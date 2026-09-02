@@ -20,31 +20,31 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'app-icon.svg',
+            src: 'app-icon.jpg',
             sizes: '192x192',
-            type: 'image/svg+xml',
+            type: 'image/jpeg',
           },
           {
-            src: 'app-icon.svg',
+            src: 'app-icon.jpg',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/jpeg',
           },
           {
-            src: 'app-icon.svg',
+            src: 'app-icon.jpg',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/jpeg',
             purpose: 'any',
           },
           {
-            src: 'app-icon.svg',
+            src: 'app-icon.jpg',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/jpeg',
             purpose: 'maskable',
           },
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,woff2}'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/[a-zA-Z0-9]+\.supabase\.co\/storage\/v1\/object\/public\/.*/i,
