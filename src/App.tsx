@@ -187,66 +187,65 @@ export default function App() {
   // ADD CARD
   // ============================================================
 
-  const addCard = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+ const addCard = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  setError(null);
+  
+  if (!session?.user) {
+    setError('You must be logged in to add cards');
+    return;
+  }
+  
+  let imageUrl: string | null = null;
+  
+  if (selectedImage) {
+    imageUrl = await uploadImage(selectedImage.file);
+    if (!imageUrl) {
+      setError('Failed to upload image. Please try again.');
+      return;
+    }
+  } else if (newCard.image_url.trim()) {
+    imageUrl = newCard.image_url.trim();
+  }
+  
+  const cardData = {
+    name: newCard.name,
+    group_name: newCard.group_name,
+    album: newCard.album || null,
+    status: newCard.status,
+    image_url: imageUrl,
+    price: newCard.price ? parseFloat(newCard.price) : null,
+    user_id: session.user.id,
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from('cards')
+      .insert([cardData])
+      .select();
     
-    if (!session?.user) {
-      setError('You must be logged in to add cards');
+    if (error) {
+      setError(`Failed to add card: ${error.message}`);
       return;
     }
     
-    let imageUrl: string | null = null;
+    if (data) setCards([data[0], ...cards]);
     
-    if (selectedImage) {
-      imageUrl = await uploadImage(selectedImage.file);
-      if (!imageUrl) {
-        setError('Failed to upload image. Please try again.');
-        return;
-      }
-    } else if (newCard.image_url.trim()) {
-      imageUrl = newCard.image_url.trim();
-    }
+    setNewCard({
+      name: '',
+      group_name: '',
+      album: '',
+      status: 'Owned',
+      price: '',
+      image_url: '',
+    });
+    removeImage();
+    setShowAddForm(false);
     
-    const cardData = {
-      name: newCard.name,
-      group_name: newCard.group_name,
-      album: newCard.album || null,
-      status: newCard.status,
-      image_url: imageUrl,
-      price: newCard.price ? parseFloat(newCard.price) : null,
-      user_id: session.user.id,
-    };
-
-    try {
-      const { data, error } = await supabase
-        .from('cards')
-        .insert([cardData])
-        .select();
-      
-      if (error) {
-        setError(`Failed to add card: ${error.message}`);
-        return;
-      }
-      
-      if (data) setCards([data[0], ...cards]);
-      
-      setNewCard({
-        name: '',
-        group_name: '',
-        album: '',
-        status: 'Owned',
-        price: '',
-        image_url: '',
-      });
-      removeImage();
-      setShowAddForm(false);
-      
-    } catch (err) {
-      setError('Failed to add card.');
-    }
-  };
-
+  } catch (err) {
+    setError('Failed to add card.');
+  }
+};
   // ============================================================
   // DELETE CARD
   // ============================================================
