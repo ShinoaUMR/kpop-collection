@@ -312,7 +312,7 @@ export default function App() {
     <div className="app">
       <header className="header">
         <div className="header-left">
-          <h1>📸 My K-Pop Collection</h1>
+          <h1>My K-Pop Collection</h1>
         </div>
         <div className="header-right">
           <span className="user-email">👤 {session.user.email}</span>
