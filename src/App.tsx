@@ -215,7 +215,7 @@ export default function App() {
     status: newCard.status,
     image_url: imageUrl,
     price: newCard.price ? parseFloat(newCard.price) : null,
-    user_id: session.user.id,
+    //user_id: session.user.id,
   };
 
   try {
