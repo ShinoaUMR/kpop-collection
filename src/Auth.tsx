@@ -49,7 +49,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <h1>K-Pop Collection</h1>
+          <h1>🎵 K-Pop Collection</h1>
           <p>{isLogin ? 'Welcome back!' : 'Create your account'}</p>
         </div>
 

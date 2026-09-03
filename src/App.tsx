@@ -215,7 +215,7 @@ export default function App() {
     status: newCard.status,
     image_url: imageUrl,
     price: newCard.price ? parseFloat(newCard.price) : null,
-    //user_id: session.user.id,  // ← THIS MUST BE HERE
+    // NO user_id here — trigger handles it!
   };
 
   try {
