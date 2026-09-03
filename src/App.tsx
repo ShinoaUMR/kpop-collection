@@ -128,6 +128,7 @@ export default function App() {
     const preview = URL.createObjectURL(file);
     setSelectedImage({ file, preview });
     setNewCard({ ...newCard, image_url: '' });
+    event.target.value = '';
   };
 
   const uploadImage = async (file: File): Promise<string | null> => {
@@ -137,18 +138,18 @@ export default function App() {
       const fileExt = file.name.split('.').pop() || 'jpg';
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       
-      const arrayBuffer = await file.arrayBuffer();
+      console.log('📤 Uploading image:', fileName);
       
-      const { error } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from(STORAGE_BUCKET)
-        .upload(fileName, arrayBuffer, {
+        .upload(fileName, file, {
           contentType: file.type,
           cacheControl: '3600',
-          upsert: false,
+          upsert: true,
         });
       
       if (error) {
-        console.error('Upload error:', error);
+        console.error('❌ Upload error:', error);
         alert(`Upload failed: ${error.message}`);
         return null;
       }
@@ -157,10 +158,11 @@ export default function App() {
         .from(STORAGE_BUCKET)
         .getPublicUrl(fileName);
       
+      console.log('✅ Image uploaded:', publicUrlData.publicUrl);
       return publicUrlData.publicUrl;
       
     } catch (err) {
-      console.error('Upload error:', err);
+      console.error('❌ Upload error:', err);
       alert('Failed to upload image. Please try again.');
       return null;
     } finally {
@@ -187,65 +189,71 @@ export default function App() {
   // ADD CARD
   // ============================================================
 
- const addCard = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  setError(null);
-  
-  if (!session?.user) {
-    setError('You must be logged in to add cards');
-    return;
-  }
-  
-  let imageUrl: string | null = null;
-  
-  if (selectedImage) {
-    imageUrl = await uploadImage(selectedImage.file);
-    if (!imageUrl) {
-      setError('Failed to upload image. Please try again.');
+  const addCard = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    
+    if (!session?.user) {
+      setError('You must be logged in to add cards');
       return;
     }
-  } else if (newCard.image_url.trim()) {
-    imageUrl = newCard.image_url.trim();
-  }
-  
-  const cardData = {
-    name: newCard.name,
-    group_name: newCard.group_name,
-    album: newCard.album || null,
-    status: newCard.status,
-    image_url: imageUrl,
-    price: newCard.price ? parseFloat(newCard.price) : null,
-    // NO user_id here — trigger handles it!
+    
+    let imageUrl: string | null = null;
+    
+    if (selectedImage) {
+      imageUrl = await uploadImage(selectedImage.file);
+      if (!imageUrl) {
+        setError('Failed to upload image. Please try again.');
+        return;
+      }
+    } else if (newCard.image_url.trim()) {
+      imageUrl = newCard.image_url.trim();
+    }
+    
+    const cardData = {
+      name: newCard.name,
+      group_name: newCard.group_name,
+      album: newCard.album || null,
+      status: newCard.status,
+      image_url: imageUrl,
+      price: newCard.price ? parseFloat(newCard.price) : null,
+      user_id: session.user.id, 
+    };
+
+    console.log('📤 Sending card data:', cardData);
+
+    try {
+      const { data, error } = await supabase
+        .from('cards')
+        .insert([cardData])
+        .select();
+      
+      if (error) {
+        console.error('❌ Supabase error:', error);
+        setError(`Failed to add card: ${error.message}`);
+        return;
+      }
+      
+      console.log('✅ Card added:', data);
+      if (data) setCards([data[0], ...cards]);
+      
+      setNewCard({
+        name: '',
+        group_name: '',
+        album: '',
+        status: 'Owned',
+        price: '',
+        image_url: '',
+      });
+      removeImage();
+      setShowAddForm(false);
+      
+    } catch (err) {
+      console.error('❌ Unexpected error:', err);
+      setError('Failed to add card.');
+    }
   };
 
-  try {
-    const { data, error } = await supabase
-      .from('cards')
-      .insert([cardData])
-      .select();
-    
-    if (error) {
-      setError(`Failed to add card: ${error.message}`);
-      return;
-    }
-    
-    if (data) setCards([data[0], ...cards]);
-    
-    setNewCard({
-      name: '',
-      group_name: '',
-      album: '',
-      status: 'Owned',
-      price: '',
-      image_url: '',
-    });
-    removeImage();
-    setShowAddForm(false);
-    
-  } catch (err) {
-    setError('Failed to add card.');
-  }
-};
   // ============================================================
   // DELETE CARD
   // ============================================================
@@ -311,7 +319,7 @@ export default function App() {
     <div className="app">
       <header className="header">
         <div className="header-left">
-          <h1>My K-Pop Collection</h1>
+          <h1>🎵 My K-Pop Collection</h1>
         </div>
         <div className="header-right">
           <span className="user-email">👤 {session.user.email}</span>
