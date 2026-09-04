@@ -140,7 +140,7 @@ export default function App() {
       
       console.log('📤 Uploading image:', fileName);
       
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from(STORAGE_BUCKET)
         .upload(fileName, file, {
           contentType: file.type,
