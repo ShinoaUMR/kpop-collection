@@ -189,7 +189,7 @@ export default function App() {
   // ADD CARD
   // ============================================================
 
- const addCard = async (e: React.FormEvent<HTMLFormElement>) => {
+const addCard = async (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();
   setError(null);
   
@@ -211,19 +211,22 @@ export default function App() {
   }
   
   const cardData = {
-    p_name: newCard.name,
-    p_group_name: newCard.group_name,
-    p_album: newCard.album || null,
-    p_status: newCard.status,
-    p_image_url: imageUrl,
-    p_price: newCard.price ? parseFloat(newCard.price) : null,
+    name: newCard.name,
+    group_name: newCard.group_name,
+    album: newCard.album || null,
+    status: newCard.status,
+    image_url: imageUrl,
+    price: newCard.price ? parseFloat(newCard.price) : null,
+    user_id: session.user.id,  // ← MUST BE HERE
   };
 
   console.log('📤 Sending card data:', cardData);
 
   try {
-    // Call the stored procedure instead of direct insert
-    const { data, error } = await supabase.rpc('insert_card', cardData);
+    const { data, error } = await supabase
+      .from('cards')
+      .insert([cardData])
+      .select();
     
     if (error) {
       console.error('❌ Supabase error:', error);
@@ -231,10 +234,8 @@ export default function App() {
       return;
     }
     
-    console.log('✅ Card added with ID:', data);
-    
-    // Reload cards to show the new one
-    await loadCards();
+    console.log('✅ Card added:', data);
+    if (data) setCards([data[0], ...cards]);
     
     setNewCard({
       name: '',
